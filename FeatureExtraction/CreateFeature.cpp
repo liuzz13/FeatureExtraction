@@ -23,19 +23,24 @@ struct CCreateFeature::Swavhead
 	unsigned int SubChunk2Size; // 语音数据的长度 
 };
 
-CCreateFeature::CCreateFeature(int fHigh, int fLow, int fliterNum)
+CCreateFeature::CCreateFeature(int fHighIn, int fLowIn, int fliterNumIn)
 {
-	fHigh = fHigh;
-	fLow = fLow;
-	fliterNum = fliterNum;
+	fHigh = fHighIn;
+	fLow = fLowIn;
+	filterNum = fliterNumIn;
 }
 
 
 bool CCreateFeature::FBankExtraction(string fList)
 {
 	//读文件
-	//string fList = "E:/培训/标注培训/广东数据标注/eng167.wav";
 	FILE *wavfile = fopen(fList.c_str(), "rb");
+	if (wavfile == NULL)
+	{
+		cout << "文件" << fList << "打开错误";
+		return 0;
+	}
+
 
 	//读文件头信息
 	Swavhead wav;
@@ -46,16 +51,32 @@ bool CCreateFeature::FBankExtraction(string fList)
 		cout << "高频截止频率设置错误";
 		return 0;
 	}
+	
+	//检查是否为wav文件
+	if (wav.Format == "WAVE")
+	{
+		cout << "打开不为wav文件";
+		return 0;
+	}
+
+	//若没有指定截止频率则设定为全频段
+	if (fHigh == -1)
+		fHigh = wav.SampleRate / 2;
+	if (fLow == -1)
+		fLow = 0;
 
 	int sampleSize = wav.SubChunk2Size / wav.BlockAlign;	//采样点总数
-	int frameNum = sampleSize / (wav.SampleRate / (1000 / frameSpace));	//语音总帧数
+	frameNum = sampleSize / (wav.SampleRate / (1000 / frameSpace));	//语音总帧数
 	int frameSampleLen = wav.SampleRate / (1000 / frameLen);	//每帧语音的采样点数
+	int frameShift = wav.SampleRate / (1000 / frameSpace);	//帧移采样点数
 
-	sample = new short[sampleSize];
-	fread(sample, sizeof(short), sampleSize, wavfile);	//读入整个语音数据
+	//读入语音数据末尾不足一帧的补零
+	sample = new short[(frameNum - 1)*frameShift + frameSampleLen];
+	fread(sample, sizeof(short), sampleSize, wavfile);
+	for (int i = sampleSize; i < (frameNum - 1)*frameShift + frameSampleLen; i++)
+		sample[i] = 0;
 
 	fclose(wavfile);
-
 
 	float *sampleAfterPreEmphasise = new float[sampleSize];
 	PreEmphasise(sample, sampleSize, sampleAfterPreEmphasise);	//对语音进行预加重，结果存入sampleAfterPreEmphasise
@@ -73,28 +94,34 @@ bool CCreateFeature::FBankExtraction(string fList)
 	CreateFilt(filtWeight, filterNum, wav.SampleRate, fHigh, fLow);
 
 	//对每帧语音进行处理
+	//float *melEnergy = new float[filterNum];
 	vector<complex<float> > vecList;
 	vector<float> powSpectrum;
+	Fbank.clear();
+
 	for (int i = 0; i < frameNum; i++)
 	{
 		float *data = new float[frameSampleLen];
-		//if(memcpy(data, &sampleAfterPreEmphasise[frameSampleLen*i], frameSampleLen * wav.BlockAlign)==NULL);	//提取一帧的信息
-		//	break;
-		memcpy(data, &sampleAfterPreEmphasise[frameSampleLen*i], frameSampleLen * wav.BlockAlign);
+		memcpy(data, &sampleAfterPreEmphasise[frameShift*i], frameSampleLen * wav.BlockAlign);	//提取每一帧
 
 		float *dataAfterWin = new float[frameSampleLen];
 		HammingWindow(data, hamWin, frameSampleLen, dataAfterWin);	//加窗
 		ComputeFFT(dataAfterWin, frameSampleLen, vecList);	//计算FFT
-		CCreateFeature::CalPowSpectrum(vecList, powSpectrum);	//根据频谱计算功率谱
-
+		CalPowSpectrum(vecList, powSpectrum);	//根据频谱计算功率谱
+		Mel_EN(filtWeight, filterNum, powSpectrum);
 
 		delete[]data;
 		delete[]dataAfterWin;
+		vecList.clear();
+		powSpectrum.clear();
 	}
 
-	vecList.clear();
-	delete []sample;
-	delete []sampleAfterPreEmphasise;
+	delete[]sample;
+	delete[]sampleAfterPreEmphasise;
+	delete[]hamWin;
+	for (int i = 0; i < filterNum; i++)
+		delete[] filtWeight[i];
+	delete[] filtWeight;
 
 	return 1;
 }
@@ -244,24 +271,15 @@ void CCreateFeature::FFT(const unsigned long &ulN, vector<complex<float> > &vecL
 }
 
 
-void CCreateFeature::CalPowSpectrum(vector<complex<float>> &vecList, vector<float> &powSpectrum)
-{
-	int i;
-	float temp;
-	for (i = 1; i <= FFTLen / 2 + 1; i++)
-	{
-		temp = vecList[i - 1].real()*vecList[i - 1].real() + vecList[i - 1].imag()*vecList[i - 1].imag();
-		powSpectrum.push_back(temp);
-	}
-}
 
 
 void CCreateFeature::InitFilt(float **FiltWeight, int num_filt)
 {
 	int i, j;
 	for (i = 0; i<num_filt; i++)
-	for (j = 0; j<FFTLen / 2 + 1; j++)
-		*(*(FiltWeight + i) + j) = 0.0;
+	for (j = 0; j < FFTLen / 2 + 1; j++)
+		//*(*(FiltWeight + i) + j) = 0.0;
+		FiltWeight[i][j] = 0.0;
 }
 
 
@@ -326,6 +344,33 @@ void CCreateFeature::CreateFilt(float **w, int num_filt, int Fs, int high, int l
 	delete[]indexstart;
 	delete[]indexstop;
 
+}
 
+
+void CCreateFeature::CalPowSpectrum(vector<complex<float>> &vecList, vector<float> &powSpectrum)
+{
+	int i;
+	float temp;
+	for (i = 1; i <= FFTLen / 2 + 1; i++)
+	{
+		temp = vecList[i - 1].real()*vecList[i - 1].real() + vecList[i - 1].imag()*vecList[i - 1].imag();
+		powSpectrum.push_back(temp);
+	}
+}
+
+void CCreateFeature::Mel_EN(float **w, int num_filt, vector<float>& vec_mag) // computes log energy of each channel
+{
+	int i, j;
+	float *M_energy = new float[num_filt];
+	for (i = 1; i <= num_filt; i++)    // set initial energy value to 0
+		M_energy[i - 1] = 0.0F;
+
+	for (i = 1; i <= num_filt; i++)
+	{
+		for (j = 1; j <= FFTLen / 2 + 1; j++)
+			M_energy[i - 1] = M_energy[i - 1] + w[i - 1][j - 1] * vec_mag[j - 1];
+		M_energy[i - 1] = (float)(log(M_energy[i - 1]));
+		Fbank.push_back(M_energy[i - 1]);
+	}
 
 }

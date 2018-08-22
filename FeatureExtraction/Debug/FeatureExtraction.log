@@ -1,27 +1,14 @@
-﻿生成启动时间为 2018/8/21 20:47:03。
-     1>项目“E:\培训\FeatureExtraction\FeatureExtraction\FeatureExtraction\FeatureExtraction.vcxproj”在节点 2 上(Build 个目标)。
+﻿生成启动时间为 2018/8/22 17:01:50。
+     1>项目“E:\培训\特征提取\FeatureExtraction\FeatureExtraction\FeatureExtraction\FeatureExtraction.vcxproj”在节点 2 上(Build 个目标)。
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _CRT_SECURE_NO_WARNINGS /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt CreateFeature.cpp main.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _CRT_SECURE_NO_WARNINGS /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
          main.cpp
-         CreateFeature.cpp
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(114): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(217): warning C4244: “参数”: 从“double”转换到“const std::complex<float>::_Ty”，可能丢失数据
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(271): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(272): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(274): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(275): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(294): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(295): warning C4244: “=”: 从“float”转换到“int”，可能丢失数据
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(306): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(309): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-     1>e:\培训\featureextraction\featureextraction\featureextraction\createfeature.cpp(311): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-         正在生成代码...
        Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\培训\FeatureExtraction\FeatureExtraction\Debug\FeatureExtraction.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"E:\培训\FeatureExtraction\FeatureExtraction\Debug\FeatureExtraction.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\培训\FeatureExtraction\FeatureExtraction\Debug\FeatureExtraction.lib" /MACHINE:X86 Debug\CreateFeature.obj
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\培训\特征提取\FeatureExtraction\FeatureExtraction\Debug\FeatureExtraction.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"E:\培训\特征提取\FeatureExtraction\FeatureExtraction\Debug\FeatureExtraction.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\培训\特征提取\FeatureExtraction\FeatureExtraction\Debug\FeatureExtraction.lib" /MACHINE:X86 Debug\CreateFeature.obj
          Debug\main.obj
-         FeatureExtraction.vcxproj -> E:\培训\FeatureExtraction\FeatureExtraction\Debug\FeatureExtraction.exe
-     1>已完成生成项目“E:\培训\FeatureExtraction\FeatureExtraction\FeatureExtraction\FeatureExtraction.vcxproj”(Build 个目标)的操作。
+         FeatureExtraction.vcxproj -> E:\培训\特征提取\FeatureExtraction\FeatureExtraction\Debug\FeatureExtraction.exe
+     1>已完成生成项目“E:\培训\特征提取\FeatureExtraction\FeatureExtraction\FeatureExtraction\FeatureExtraction.vcxproj”(Build 个目标)的操作。
 
 生成成功。
 
-已用时间 00:00:02.12
+已用时间 00:00:00.87
