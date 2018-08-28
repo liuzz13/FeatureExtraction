@@ -1,4 +1,3 @@
-
 #include"CreateFeature.h"
 
 extern double Pi = 3.1415926536;
@@ -28,8 +27,13 @@ CCreateFeature::CCreateFeature(int fHighIn, int fLowIn, int fliterNumIn)
 	fHigh = fHighIn;
 	fLow = fLowIn;
 	filterNum = fliterNumIn;
+	Fbank.clear();
 }
 
+CCreateFeature::~CCreateFeature()
+{
+	Fbank.clear();
+}
 
 bool CCreateFeature::FBankExtraction(string fList)
 {
@@ -71,16 +75,18 @@ bool CCreateFeature::FBankExtraction(string fList)
 	int frameShift = wav.SampleRate / (1000 / frameSpace);	//帧移采样点数
 
 	//读入语音数据末尾不足一帧的补零
-	sample = new short[(frameNum - 1)*frameShift + frameSampleLen];
+	int frameActualLen = (frameNum - 1)*frameShift + frameSampleLen;
+	sample = new short[frameActualLen];
 	fread(sample, sizeof(short), sampleSize, wavfile);
-	for (int i = sampleSize; i < (frameNum - 1)*frameShift + frameSampleLen; i++)
+
+	for (int i = sampleSize; i < frameActualLen; i++)
 		sample[i] = 0;
 
 	fclose(wavfile);
 
-	float *sampleAfterPreEmphasise = new float[sampleSize];
-	PreEmphasise(sample, sampleSize, sampleAfterPreEmphasise);	//对语音进行预加重，结果存入sampleAfterPreEmphasise
-
+	float *sampleAfterPreEmphasise = new float[frameActualLen];
+	PreEmphasise(sample, frameActualLen, sampleAfterPreEmphasise);	//对语音进行预加重，结果存入sampleAfterPreEmphasise
+	
 	//初始化汉明窗
 	float *hamWin = new float[frameSampleLen];
 	InitHamming(hamWin, frameSampleLen);
@@ -94,7 +100,6 @@ bool CCreateFeature::FBankExtraction(string fList)
 	CreateFilt(filtWeight, filterNum, wav.SampleRate, fHigh, fLow);
 
 	//对每帧语音进行处理
-	//float *melEnergy = new float[filterNum];
 	vector<complex<float> > vecList;
 	vector<float> powSpectrum;
 	Fbank.clear();
@@ -102,7 +107,7 @@ bool CCreateFeature::FBankExtraction(string fList)
 	for (int i = 0; i < frameNum; i++)
 	{
 		float *data = new float[frameSampleLen];
-		memcpy(data, &sampleAfterPreEmphasise[frameShift*i], frameSampleLen * wav.BlockAlign);	//提取每一帧
+		memcpy(data, &sampleAfterPreEmphasise[frameShift*i], frameSampleLen * 4);	//提取每一帧
 
 		float *dataAfterWin = new float[frameSampleLen];
 		HammingWindow(data, hamWin, frameSampleLen, dataAfterWin);	//加窗
@@ -115,10 +120,10 @@ bool CCreateFeature::FBankExtraction(string fList)
 		vecList.clear();
 		powSpectrum.clear();
 	}
-
-	delete[]sample;
-	delete[]sampleAfterPreEmphasise;
-	delete[]hamWin;
+		
+	delete[] sample;
+	delete[] sampleAfterPreEmphasise;
+	delete[] hamWin;
 	for (int i = 0; i < filterNum; i++)
 		delete[] filtWeight[i];
 	delete[] filtWeight;
@@ -129,24 +134,24 @@ bool CCreateFeature::FBankExtraction(string fList)
 
 /*
 对语音数据进行预加重
-输入：const short *data：预加重前语音数据流
-	  int len：存储语音数据的数组大小
-	  float *out：用于返回预加重后结果
+输入：
+const short *data：预加重前语音数据流
+int len：存储语音数据的数组大小
+float *out：用于返回预加重后结果
 输出：无
 */
 void CCreateFeature::PreEmphasise(const short *data, int len, float *out)//预加重
 {
-	for (int i = len - 1; i <= 1; i--)
-	{
-		out[i] = float(data[i]) - 0.97 * float(data[i - 1]);
-	}
 	out[0] = data[0];
+	for (int i = 1; i < len; i++)
+		out[i] = float(data[i]) - 0.97 * float(data[i - 1]);
 }
 
 /*
 初始化汉明窗
-输入：double *hamWin：返回汉明窗数据
-	  int hamWinSize：汉明窗大小
+输入：
+double *hamWin：返回汉明窗数据
+int hamWinSize：汉明窗大小
 输出：无
 */
 void CCreateFeature::InitHamming(float *hamWin, int hamWinSize)
@@ -159,10 +164,11 @@ void CCreateFeature::InitHamming(float *hamWin, int hamWinSize)
 
 /*
 对某帧语音进行加窗
-输入：double *dataIn：输入语音数据
-	  double *win：窗
-	  int frmLen：帧长
-	  double* dataOut：加窗后结果
+输入：
+double *dataIn：输入语音数据
+double *win：窗
+int frmLen：帧长
+double* dataOut：加窗后结果
 输出：无
 */
 void CCreateFeature::HammingWindow(float *dataIn, float *win, int frmLen, float* dataOut)
@@ -175,10 +181,11 @@ void CCreateFeature::HammingWindow(float *dataIn, float *win, int frmLen, float*
 
 
 /*
-计算傅里叶参数，主要是对语音数据进行补零操作，之后进行FFT，结果返回到vecList中
-输入：float *data：一帧的语音数据
-	  int frameSampleLen：语音数据长度
-	  vector<complex<float>> &vecList：傅里叶参数
+计算傅里叶参数，对语音数据进行补零操作，之后进行FFT，结果返回到vecList中
+输入：
+float *data：一帧的语音数据
+int frameSampleLen：语音数据长度
+vector<complex<float>> &vecList：傅里叶参数
 */
 void CCreateFeature::ComputeFFT(float *data, int frameSampleLen, vector<complex<float> > &vecList)
 {
@@ -270,19 +277,32 @@ void CCreateFeature::FFT(const unsigned long &ulN, vector<complex<float> > &vecL
 	}
 }
 
-
-
+/*
+初始化滤波器
+输入：
+float **FiltWeight：将所有系数置零
+int num_filt：三角滤波器个数
+*/
 
 void CCreateFeature::InitFilt(float **FiltWeight, int num_filt)
 {
 	int i, j;
 	for (i = 0; i<num_filt; i++)
-	for (j = 0; j < FFTLen / 2 + 1; j++)
-		//*(*(FiltWeight + i) + j) = 0.0;
-		FiltWeight[i][j] = 0.0;
+		for (j = 0; j < FFTLen / 2 + 1; j++)
+			FiltWeight[i][j] = 0.0;
 }
 
 
+/*
+计算梅尔滤波在每个点上的滤波效果
+参考自https://github.com/Linzecong/MFCC-DTW/blob/master/WaveFunction.cpp
+输入：
+float **w：用于返回得到计算滤波的效果
+int num_filt：三角滤波器个数
+int Fs：语音采样率
+int high：截止频率上限
+int low：截止频率下限
+*/
 void CCreateFeature::CreateFilt(float **w, int num_filt, int Fs, int high, int low)
 {
 	float df = (float)Fs / (float)FFTLen;    // FFT interval
@@ -346,31 +366,43 @@ void CCreateFeature::CreateFilt(float **w, int num_filt, int Fs, int high, int l
 
 }
 
-
+/*
+计算功率谱
+输入：
+vector<complex<float>> &vecList：FFT后频谱
+vector<float> &powSpectrum：用于返回计算得到的功率谱
+*/
 void CCreateFeature::CalPowSpectrum(vector<complex<float>> &vecList, vector<float> &powSpectrum)
 {
 	int i;
 	float temp;
-	for (i = 1; i <= FFTLen / 2 + 1; i++)
+	for (i = 0; i < FFTLen / 2 + 1; i++)
 	{
-		temp = vecList[i - 1].real()*vecList[i - 1].real() + vecList[i - 1].imag()*vecList[i - 1].imag();
+		temp = vecList[i].real()*vecList[i].real() + vecList[i].imag()*vecList[i].imag();
 		powSpectrum.push_back(temp);
 	}
 }
 
+/*
+计算梅尔滤波后结果
+输入：
+float **w：梅尔滤波器滤波权重
+int num_filt：三角滤波器个数
+vector<float>& vec_mag：功率谱
+*/
 void CCreateFeature::Mel_EN(float **w, int num_filt, vector<float>& vec_mag) // computes log energy of each channel
 {
 	int i, j;
 	float *M_energy = new float[num_filt];
-	for (i = 1; i <= num_filt; i++)    // set initial energy value to 0
-		M_energy[i - 1] = 0.0F;
+	for (i = 0; i < num_filt; i++)    // set initial energy value to 0
+		M_energy[i] = 0.0F;
 
-	for (i = 1; i <= num_filt; i++)
+	for (i = 0; i < num_filt; i++)
 	{
-		for (j = 1; j <= FFTLen / 2 + 1; j++)
-			M_energy[i - 1] = M_energy[i - 1] + w[i - 1][j - 1] * vec_mag[j - 1];
-		M_energy[i - 1] = (float)(log(M_energy[i - 1]));
-		Fbank.push_back(M_energy[i - 1]);
+		for (j = 0; j < FFTLen / 2 + 1; j++)
+			M_energy[i] = M_energy[i] + w[i][j] * vec_mag[j];
+		M_energy[i] = (float)(log(M_energy[i]));
+		Fbank.push_back(M_energy[i]);
 	}
 
 }
